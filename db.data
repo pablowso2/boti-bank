@@ -1,0 +1,50 @@
+{
+    "clientes": [
+        {
+            "id": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d",
+            "nombre": "Ana",
+            "apellido": "Garc\u00eda"
+        },
+        {
+            "id": "88888888-cc1c-4c5a-8b50-9ee4fb6c214d",
+            "nombre": "Pablo",
+            "apellido": "Saga"
+        }
+    ],
+    "cuentas": [
+        {
+            "cuentaId": "CTA-122",
+            "clienteId": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d",
+            "saldo": 1800.5
+        },
+        {
+            "cuentaId": "CTA-123",
+            "clienteId": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d",
+            "saldo": 100.0
+        },
+        {
+            "cuentaId": "CTA-999",
+            "clienteId": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d",
+            "saldo": 0.0
+        }
+    ],
+    "movimientos": [
+        {
+            "id": "01f15ec0-b34b-18a0-88e4-fea53fe216b1",
+            "fecha": "2026-06-02T20:21:56.456908Z",
+            "tipo": "INGRESO",
+            "monto": 1500.5,
+            "descripcion": "Ingreso por ventanilla/cajero",
+            "cuentaId": "CTA-123"
+        }
+    ],
+    "servicios": [
+        {
+            "codigoServicio": "LZ1",
+            "nombre": "Luz",
+            "monto": 50.0,
+            "vencimiento": "2023-12-31"
+        }
+    ],
+    "hipotecas": []
+}
