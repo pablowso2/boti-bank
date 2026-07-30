@@ -20,10 +20,13 @@ from langgraph.checkpoint.memory import MemorySaver
 load_dotenv()
 
 # ==========================================
-# 1. BASE DE DATOS EN MEMORIA
+# 1. BASE DE DATOS LOCAL (Simulando db.data)
 # ==========================================
-# Todo el almacenamiento vivirá en este diccionario global en la RAM
-IN_MEMORY_DB = {
+# Leer la ruta del archivo desde el .env (por defecto "db.data")
+DB_FILE = os.getenv("DB_FILE_PATH", "db.data")
+
+# Estado inicial basado en la base de datos de ejemplo
+INITIAL_DB = {
     "clientes": [
         {"id": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d", "nombre": "Ana", "apellido": "García"}, 
         {"id": "88888888-cc1c-4c5a-8b50-9ee4fb6c214d", "nombre": "Pablo", "apellido": "Saga"}
@@ -42,8 +45,19 @@ IN_MEMORY_DB = {
     "hipotecas": []
 }
 
-def registrar_movimiento(cuenta_id: str, tipo: str, monto: float, descripcion: str):
-    """Auxiliar para guardar movimientos directamente en memoria."""
+def load_db() -> dict:
+    if not os.path.exists(DB_FILE):
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(INITIAL_DB, f, indent=4)
+        return INITIAL_DB
+    with open(DB_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def save_db(db_data: dict):
+    with open(DB_FILE, "w", encoding="utf-8") as f:
+        json.dump(db_data, f, indent=4)
+
+def registrar_movimiento(db_data: dict, cuenta_id: str, tipo: str, monto: float, descripcion: str):
     mov = {
         "id": str(uuid.uuid4()),
         "fecha": datetime.utcnow().isoformat() + "Z",
@@ -52,7 +66,7 @@ def registrar_movimiento(cuenta_id: str, tipo: str, monto: float, descripcion: s
         "descripcion": descripcion,
         "cuentaId": cuenta_id
     }
-    IN_MEMORY_DB.setdefault("movimientos", []).append(mov)
+    db_data.setdefault("movimientos", []).append(mov)
 
 # ==========================================
 # 2. DEFINICIÓN DE TOOLS PARA EL AGENTE
@@ -61,29 +75,34 @@ def registrar_movimiento(cuenta_id: str, tipo: str, monto: float, descripcion: s
 @tool
 def listar_clientes() -> str:
     """Obtiene la lista de clientes del banco."""
-    return json.dumps(IN_MEMORY_DB.get("clientes", []))
+    db = load_db()
+    return json.dumps(db.get("clientes", []))
 
 @tool
 def consultar_cuentas(cliente_id: str) -> str:
     """Lista las cuentas bancarias pertenecientes a un cliente dado su ID."""
-    cuentas = [c for c in IN_MEMORY_DB.get("cuentas", []) if c["clienteId"] == cliente_id]
+    db = load_db()
+    cuentas = [c for c in db.get("cuentas", []) if c["clienteId"] == cliente_id]
     return json.dumps(cuentas)
 
 @tool
 def ingresar_dinero(cuenta_id: str, monto: float) -> str:
     """Ingresa dinero a una cuenta bancaria específica."""
-    for cuenta in IN_MEMORY_DB["cuentas"]:
+    db = load_db()
+    for cuenta in db["cuentas"]:
         if cuenta["cuentaId"] == cuenta_id:
             cuenta["saldo"] += monto
-            registrar_movimiento(cuenta_id, "INGRESO", monto, "Ingreso por agente")
+            registrar_movimiento(db, cuenta_id, "INGRESO", monto, "Ingreso por agente")
+            save_db(db)
             return f"Ingreso exitoso. Nuevo saldo: {cuenta['saldo']}"
     return "Error: Cuenta no encontrada."
 
 @tool
 def transferir_dinero(cuenta_origen: str, cuenta_destino: str, monto: float, concepto: str) -> str:
     """Realiza una transferencia de dinero entre dos cuentas."""
+    db = load_db()
     origen, destino = None, None
-    for c in IN_MEMORY_DB["cuentas"]:
+    for c in db["cuentas"]:
         if c["cuentaId"] == cuenta_origen: origen = c
         if c["cuentaId"] == cuenta_destino: destino = c
         
@@ -94,46 +113,52 @@ def transferir_dinero(cuenta_origen: str, cuenta_destino: str, monto: float, con
         
     origen["saldo"] -= monto
     destino["saldo"] += monto
-    registrar_movimiento(cuenta_origen, "TRANSFERENCIA_ENVIADA", monto, concepto)
-    registrar_movimiento(cuenta_destino, "TRANSFERENCIA_RECIBIDA", monto, concepto)
+    registrar_movimiento(db, cuenta_origen, "TRANSFERENCIA_ENVIADA", monto, concepto)
+    registrar_movimiento(db, cuenta_destino, "TRANSFERENCIA_RECIBIDA", monto, concepto)
+    save_db(db)
     return f"Transferencia exitosa. Saldo restante en cuenta origen: {origen['saldo']}"
 
 @tool
 def listar_servicios() -> str:
     """Lista los servicios disponibles para pagar (luz, agua, etc.)."""
-    return json.dumps(IN_MEMORY_DB.get("servicios", []))
+    db = load_db()
+    return json.dumps(db.get("servicios", []))
 
 @tool
 def pagar_servicio(cuenta_origen: str, codigo_servicio: str) -> str:
     """Paga un servicio (luz, gas) descontando el dinero de una cuenta."""
-    servicio = next((s for s in IN_MEMORY_DB["servicios"] if s["codigoServicio"] == codigo_servicio), None)
+    db = load_db()
+    servicio = next((s for s in db["servicios"] if s["codigoServicio"] == codigo_servicio), None)
     if not servicio: return "Error: Servicio no encontrado."
     
-    for cuenta in IN_MEMORY_DB["cuentas"]:
+    for cuenta in db["cuentas"]:
         if cuenta["cuentaId"] == cuenta_origen:
             if cuenta["saldo"] < servicio["monto"]:
                 return "Error: Saldo insuficiente."
             
             cuenta["saldo"] -= servicio["monto"]
-            registrar_movimiento(cuenta_origen, "PAGO_SERVICIO", servicio["monto"], f"Pago de servicio: {servicio['nombre']}")
-            IN_MEMORY_DB["servicios"] = [s for s in IN_MEMORY_DB["servicios"] if s["codigoServicio"] != codigo_servicio]
+            registrar_movimiento(db, cuenta_origen, "PAGO_SERVICIO", servicio["monto"], f"Pago de servicio: {servicio['nombre']}")
+            db["servicios"] = [s for s in db["servicios"] if s["codigoServicio"] != codigo_servicio]
+            save_db(db)
             return f"Servicio {servicio['nombre']} pagado con éxito. Nuevo saldo: {cuenta['saldo']}"
     return "Error: Cuenta origen no encontrada."
 
 @tool
 def pagar_hipoteca(cuenta_origen: str, id_hipoteca: str, monto: float) -> str:
     """Realiza el pago de una cuota de hipoteca."""
-    hipoteca = next((h for h in IN_MEMORY_DB.get("hipotecas", []) if h["id"] == id_hipoteca), None)
+    db = load_db()
+    hipoteca = next((h for h in db.get("hipotecas", []) if h["id"] == id_hipoteca), None)
     if not hipoteca: return "Error: Hipoteca no encontrada."
     
-    for cuenta in IN_MEMORY_DB["cuentas"]:
+    for cuenta in db["cuentas"]:
         if cuenta["cuentaId"] == cuenta_origen:
             if cuenta["saldo"] < monto:
                 return "Error: Saldo insuficiente."
             
             cuenta["saldo"] -= monto
             hipoteca["balancePendiente"] -= monto
-            registrar_movimiento(cuenta_origen, "PAGO_HIPOTECA", monto, f"Pago de hipoteca: {id_hipoteca}")
+            registrar_movimiento(db, cuenta_origen, "PAGO_HIPOTECA", monto, f"Pago de hipoteca: {id_hipoteca}")
+            save_db(db)
             return f"Hipoteca pagada. Balance restante de la hipoteca: {hipoteca['balancePendiente']}"
     return "Error: Cuenta origen no encontrada."
 
@@ -203,6 +228,11 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     response: str
+
+@app.on_event("startup")
+def startup_event():
+    # Garantiza que el archivo se genere al arrancar si no existe
+    load_db()
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(req: ChatRequest):
