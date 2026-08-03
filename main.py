@@ -198,7 +198,7 @@ botibank_agent = workflow.compile(checkpointer=checkpointer)
 app = FastAPI(title="BotiBank AI Agent", version="1.2.0")
 
 class ChatRequest(BaseModel):
-    thread_id: str = Field(..., description="ID del chat para mantener el historial")
+    session_id: str = Field(..., description="ID del chat para mantener el historial")
     message: str = Field(..., description="El mensaje o instrucción del usuario")
 
 class ChatResponse(BaseModel):
@@ -206,7 +206,7 @@ class ChatResponse(BaseModel):
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(req: ChatRequest):
-    run_config = {"configurable": {"thread_id": req.thread_id}}
+    run_config = {"configurable": {"session_id": req.session_id}}
     
     input_message = HumanMessage(content=req.message)
     
