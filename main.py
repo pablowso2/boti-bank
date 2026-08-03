@@ -148,7 +148,7 @@ tools = [
 # ==========================================
 
 # Leer configuración del modelo desde el .env
-LLM_API_KEY = os.getenv("MODEL_API_KEY", "not-needed")
+LLM_API_KEY = os.getenv("MODEL_API_KEY", "sk-mi-clave-secreta-123")
 LLM_BASE_URL = os.getenv("MODEL_BASE_URL", "http://127.0.0.1:8081/v1")
 LLM_MODEL_NAME = os.getenv("MODEL_NAME", "hermes-2-pro-llama3-8b")
 
