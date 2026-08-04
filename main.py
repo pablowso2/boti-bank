@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from typing import Optional, Dict, Any
 
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
@@ -25,12 +26,12 @@ load_dotenv()
 # Todo el almacenamiento vivirá en este diccionario global en la RAM
 IN_MEMORY_DB = {
     "clientes": [
-        {"id": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d", "nombre": "Ana", "apellido": "García"}, 
+        {"id": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d", "nombre": "Ana", "apellido": "García"},
         {"id": "88888888-cc1c-4c5a-8b50-9ee4fb6c214d", "nombre": "Pablo", "apellido": "Saga"}
     ],
     "cuentas": [
-        {"cuentaId": "CTA-122", "clienteId": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d", "saldo": 1800.50}, 
-        {"cuentaId": "CTA-123", "clienteId": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d", "saldo": 100.0}, 
+        {"cuentaId": "CTA-122", "clienteId": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d", "saldo": 1800.50},
+        {"cuentaId": "CTA-123", "clienteId": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d", "saldo": 100.0},
         {"cuentaId": "CTA-999", "clienteId": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d", "saldo": 0.0}
     ],
     "movimientos": [
@@ -86,12 +87,12 @@ def transferir_dinero(cuenta_origen: str, cuenta_destino: str, monto: float, con
     for c in IN_MEMORY_DB["cuentas"]:
         if c["cuentaId"] == cuenta_origen: origen = c
         if c["cuentaId"] == cuenta_destino: destino = c
-        
+
     if not origen or not destino:
         return "Error: Cuenta de origen o destino no encontrada."
     if origen["saldo"] < monto:
         return "Error: Saldo insuficiente."
-        
+
     origen["saldo"] -= monto
     destino["saldo"] += monto
     registrar_movimiento(cuenta_origen, "TRANSFERENCIA_ENVIADA", monto, concepto)
@@ -108,12 +109,12 @@ def pagar_servicio(cuenta_origen: str, codigo_servicio: str) -> str:
     """Paga un servicio (luz, gas) descontando el dinero de una cuenta."""
     servicio = next((s for s in IN_MEMORY_DB["servicios"] if s["codigoServicio"] == codigo_servicio), None)
     if not servicio: return "Error: Servicio no encontrado."
-    
+
     for cuenta in IN_MEMORY_DB["cuentas"]:
         if cuenta["cuentaId"] == cuenta_origen:
             if cuenta["saldo"] < servicio["monto"]:
                 return "Error: Saldo insuficiente."
-            
+
             cuenta["saldo"] -= servicio["monto"]
             registrar_movimiento(cuenta_origen, "PAGO_SERVICIO", servicio["monto"], f"Pago de servicio: {servicio['nombre']}")
             IN_MEMORY_DB["servicios"] = [s for s in IN_MEMORY_DB["servicios"] if s["codigoServicio"] != codigo_servicio]
@@ -125,12 +126,12 @@ def pagar_hipoteca(cuenta_origen: str, id_hipoteca: str, monto: float) -> str:
     """Realiza el pago de una cuota de hipoteca."""
     hipoteca = next((h for h in IN_MEMORY_DB.get("hipotecas", []) if h["id"] == id_hipoteca), None)
     if not hipoteca: return "Error: Hipoteca no encontrada."
-    
+
     for cuenta in IN_MEMORY_DB["cuentas"]:
         if cuenta["cuentaId"] == cuenta_origen:
             if cuenta["saldo"] < monto:
                 return "Error: Saldo insuficiente."
-            
+
             cuenta["saldo"] -= monto
             hipoteca["balancePendiente"] -= monto
             registrar_movimiento(cuenta_origen, "PAGO_HIPOTECA", monto, f"Pago de hipoteca: {id_hipoteca}")
@@ -139,7 +140,7 @@ def pagar_hipoteca(cuenta_origen: str, id_hipoteca: str, monto: float) -> str:
 
 # Agrupamos las tools
 tools = [
-    listar_clientes, consultar_cuentas, ingresar_dinero, transferir_dinero, 
+    listar_clientes, consultar_cuentas, ingresar_dinero, transferir_dinero,
     listar_servicios, pagar_servicio, pagar_hipoteca
 ]
 
@@ -161,8 +162,8 @@ llm = ChatOpenAI(
 llm_with_tools = llm.bind_tools(tools)
 
 system_prompt = SystemMessage(content="""
-Eres el asistente virtual inteligente de BotiBank. Tienes acceso a herramientas 
-para consultar clientes, cuentas, realizar transferencias, ingresos, y pagos de servicios/hipotecas. 
+Eres el asistente virtual inteligente de BotiBank. Tienes acceso a herramientas
+para consultar clientes, cuentas, realizar transferencias, ingresos, y pagos de servicios/hipotecas.
 Usa las herramientas siempre que sea necesario para realizar acciones o consultar datos reales en nombre del usuario.
 Responde de manera cordial y profesional.
 """)
@@ -197,25 +198,30 @@ botibank_agent = workflow.compile(checkpointer=checkpointer)
 
 app = FastAPI(title="BotiBank AI Agent", version="1.2.0")
 
+# NOTE: field names/requiredness here must match the OpenAPI schema
+# registered for this component's /chat endpoint in Agent Manager
+# (message + session_id required, context optional) — otherwise the
+# gateway's requests get rejected with 422 before they ever reach the graph.
 class ChatRequest(BaseModel):
-    session_id: str = Field(..., description="ID del chat para mantener el historial")
     message: str = Field(..., description="El mensaje o instrucción del usuario")
+    session_id: str = Field(..., description="ID de sesión para mantener el historial")
+    context: Optional[Dict[str, Any]] = Field(default=None, description="Contexto opcional en formato JSON")
 
 class ChatResponse(BaseModel):
     response: str
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(req: ChatRequest):
-    run_config = {"configurable": {"session_id": req.session_id}}
-    
+    run_config = {"configurable": {"thread_id": req.session_id}}
+
     input_message = HumanMessage(content=req.message)
-    
+
     try:
         final_state = await botibank_agent.ainvoke(
-            {"messages": [input_message]}, 
+            {"messages": [input_message]},
             config=run_config
         )
-        
+
         last_message = final_state["messages"][-1].content
         return ChatResponse(response=last_message)
     except Exception as e:
@@ -223,9 +229,8 @@ async def chat_endpoint(req: ChatRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    
-    # Leer configuración del servidor desde el .env
-    host = os.getenv("API_HOST", "127.0.0.1")
+
+    host = os.getenv("API_HOST", "0.0.0.0")
     port = int(os.getenv("API_PORT", 8000))
-    
+
     uvicorn.run("main:app", host=host, port=port)
