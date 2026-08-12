@@ -26,21 +26,57 @@ load_dotenv()
 # Todo el almacenamiento vivirá en este diccionario global en la RAM
 IN_MEMORY_DB = {
     "clientes": [
-        {"id": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d", "nombre": "Ana", "apellido": "García"},
-        {"id": "88888888-cc1c-4c5a-8b50-9ee4fb6c214d", "nombre": "Pablo", "apellido": "Saga"}
+        {"id": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d", "nombre": "Ana", "apellido": "García", "email": "ana@ejemplo.com"},
+        {"id": "88888888-cc1c-4c5a-8b50-9ee4fb6c214d", "nombre": "Pablo", "apellido": "Saga", "email": "pablo@ejemplo.com"},
+        {"id": "33333333-cc1c-4c5a-8b50-9ee4fb6c214d", "nombre": "Carlos", "apellido": "Pérez", "email": "carlos@ejemplo.com"}
     ],
     "cuentas": [
-        {"cuentaId": "CTA-122", "clienteId": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d", "saldo": 1800.50},
-        {"cuentaId": "CTA-123", "clienteId": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d", "saldo": 100.0},
-        {"cuentaId": "CTA-999", "clienteId": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d", "saldo": 0.0}
+        {"cuentaId": "CTA-122", "clienteId": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d", "saldo": 1800.50, "tipo": "Corriente"},
+        {"cuentaId": "CTA-123", "clienteId": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d", "saldo": 100.0, "tipo": "Ahorro"},
+        {"cuentaId": "CTA-999", "clienteId": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d", "saldo": 0.0, "tipo": "Inversión"},
+        {"cuentaId": "CTA-444", "clienteId": "88888888-cc1c-4c5a-8b50-9ee4fb6c214d", "saldo": 5000.00, "tipo": "Sueldo"},
+        {"cuentaId": "CTA-555", "clienteId": "33333333-cc1c-4c5a-8b50-9ee4fb6c214d", "saldo": 250.00, "tipo": "Ahorro"}
     ],
     "movimientos": [
-        {"id": "01f15ec0-b34b-18a0-88e4-fea53fe216b1", "fecha": "2026-06-02T20:21:56.456908Z", "tipo": "INGRESO", "monto": 1500.50, "descripcion": "Ingreso por ventanilla/cajero", "cuentaId": "CTA-123"}
+        # --- Movimientos de Ana: CTA-122 ---
+        {"id": "m-101", "fecha": "2026-01-05T10:00:00Z", "tipo": "INGRESO", "monto": 1500.00, "descripcion": "Acreditación de sueldo", "cuentaId": "CTA-122"},
+        {"id": "m-102", "fecha": "2026-01-10T15:30:00Z", "tipo": "EGRESO", "monto": 250.00, "descripcion": "Pago de servicio de luz", "cuentaId": "CTA-122"},
+        {"id": "m-103", "fecha": "2026-02-01T09:15:00Z", "tipo": "INGRESO", "monto": 650.50, "descripcion": "Transferencia recibida de Carlos", "cuentaId": "CTA-122"},
+        {"id": "m-104", "fecha": "2026-02-15T18:45:00Z", "tipo": "EGRESO", "monto": 100.00, "descripcion": "Extracción en cajero automático", "cuentaId": "CTA-122"},
+
+        # --- Movimientos de Ana: CTA-123 ---
+        {"id": "m-201", "fecha": "2026-01-08T11:20:00Z", "tipo": "INGRESO", "monto": 200.00, "descripcion": "Depósito por ventanilla", "cuentaId": "CTA-123"},
+        {"id": "m-202", "fecha": "2026-01-12T14:10:00Z", "tipo": "EGRESO", "monto": 50.00, "descripcion": "Compra en supermercado", "cuentaId": "CTA-123"},
+        {"id": "m-203", "fecha": "2026-02-05T10:05:00Z", "tipo": "INGRESO", "monto": 300.00, "descripcion": "Transferencia recibida", "cuentaId": "CTA-123"},
+        {"id": "m-204", "fecha": "2026-02-20T16:30:00Z", "tipo": "EGRESO", "monto": 150.00, "descripcion": "Pago de tarjeta de crédito", "cuentaId": "CTA-123"},
+
+        # --- Movimientos de Ana: CTA-999 (Inversión) ---
+        {"id": "m-301", "fecha": "2026-01-02T09:00:00Z", "tipo": "INGRESO", "monto": 1000.00, "descripcion": "Apertura de cuenta fondo de inversión", "cuentaId": "CTA-999"},
+        {"id": "m-302", "fecha": "2026-01-15T12:00:00Z", "tipo": "EGRESO", "monto": 1000.00, "descripcion": "Transferencia enviada a cuenta principal", "cuentaId": "CTA-999"},
+        {"id": "m-303", "fecha": "2026-03-01T10:00:00Z", "tipo": "INGRESO", "monto": 50.00, "descripcion": "Intereses ganados", "cuentaId": "CTA-999"},
+        {"id": "m-304", "fecha": "2026-03-02T11:00:00Z", "tipo": "EGRESO", "monto": 50.00, "descripcion": "Cobro de mantenimiento de cuenta", "cuentaId": "CTA-999"},
+
+        # --- Movimientos de Pablo: CTA-444 ---
+        {"id": "m-401", "fecha": "2026-01-10T08:30:00Z", "tipo": "INGRESO", "monto": 6000.00, "descripcion": "Acreditación de sueldo", "cuentaId": "CTA-444"},
+        {"id": "m-402", "fecha": "2026-01-15T09:15:00Z", "tipo": "EGRESO", "monto": 1200.00, "descripcion": "Pago cuota hipoteca HIP-002", "cuentaId": "CTA-444"},
+        {"id": "m-403", "fecha": "2026-02-10T08:30:00Z", "tipo": "INGRESO", "monto": 6000.00, "descripcion": "Acreditación de sueldo", "cuentaId": "CTA-444"},
+        {"id": "m-404", "fecha": "2026-02-20T19:20:00Z", "tipo": "EGRESO", "monto": 800.00, "descripcion": "Compra pasajes aéreos", "cuentaId": "CTA-444"},
+
+        # --- Movimientos de Carlos: CTA-555 ---
+        {"id": "m-501", "fecha": "2026-01-05T13:00:00Z", "tipo": "INGRESO", "monto": 500.00, "descripcion": "Depósito en efectivo", "cuentaId": "CTA-555"},
+        {"id": "m-502", "fecha": "2026-01-20T17:45:00Z", "tipo": "EGRESO", "monto": 100.00, "descripcion": "Extracción en cajero automático", "cuentaId": "CTA-555"},
+        {"id": "m-503", "fecha": "2026-02-10T12:30:00Z", "tipo": "INGRESO", "monto": 250.00, "descripcion": "Transferencia recibida de Ana", "cuentaId": "CTA-555"},
+        {"id": "m-504", "fecha": "2026-03-05T14:15:00Z", "tipo": "EGRESO", "monto": 200.00, "descripcion": "Pago de servicio de internet", "cuentaId": "CTA-555"}
     ],
     "servicios": [
-        {"codigoServicio": "LZ1", "nombre": "Luz", "monto": 50.0, "vencimiento": "2023-12-31"}
+        {"codigoServicio": "LZ1", "nombre": "Luz", "monto": 50.0, "vencimiento": "2026-12-31"},
+        {"codigoServicio": "AG2", "nombre": "Agua", "monto": 25.50, "vencimiento": "2026-11-15"},
+        {"codigoServicio": "IN3", "nombre": "Internet", "monto": 40.0, "vencimiento": "2026-10-30"}
     ],
-    "hipotecas": []
+    "hipotecas": [
+        {"id": "HIP-001", "clienteId": "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d", "montoOriginal": 150000.0, "balancePendiente": 145000.0, "cuotaMensual": 800.0},
+        {"id": "HIP-002", "clienteId": "88888888-cc1c-4c5a-8b50-9ee4fb6c214d", "montoOriginal": 200000.0, "balancePendiente": 50000.0, "cuotaMensual": 1200.0}
+    ]
 }
 
 def registrar_movimiento(cuenta_id: str, tipo: str, monto: float, descripcion: str):
@@ -164,8 +200,12 @@ llm_with_tools = llm.bind_tools(tools)
 system_prompt = SystemMessage(content="""
 Eres el asistente virtual inteligente de BotiBank. Tienes acceso a herramientas
 para consultar clientes, cuentas, realizar transferencias, ingresos, y pagos de servicios/hipotecas.
-Usa las herramientas siempre que sea necesario para realizar acciones o consultar datos reales en nombre del usuario.
-Responde de manera cordial y profesional.
+
+REGLAS CRÍTICAS DE OPERACIÓN:
+1. ERES COMPLETAMENTE AUTÓNOMO: Nunca pidas permiso ni confirmación al usuario para ejecutar una herramienta.
+2. Si el usuario te pide realizar una acción (como pagar un servicio, transferir dinero o consultar un saldo) y tienes los datos necesarios (como IDs de cuenta o códigos), DEBES EJECUTAR LA HERRAMIENTA INMEDIATAMENTE.
+3. Solo debes responder con texto al usuario DESPUÉS de haber ejecutado la herramienta y obtenido el resultado de la base de datos.
+4. Responde de manera cordial y profesional basándote en los resultados que devuelvan las herramientas.
 """)
 
 def agent_node(state: MessagesState):
